@@ -1,0 +1,5 @@
+[
+  { "id": "guest", "label": "Guest", "level": 0, "color": "#7C8494" },
+  { "id": "analyst", "label": "Security Analyst", "level": 1, "color": "#4FB6C4" },
+  { "id": "admin", "label": "Administrator", "level": 2, "color": "#E8A33D" }
+]

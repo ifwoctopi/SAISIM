@@ -1,0 +1,41 @@
+[
+  {
+    "id": "phishing",
+    "title": "Phishing Campaign Detected",
+    "severity": "Medium",
+    "steps": [
+      { "label": "Detect", "detail": "Mail gateway flags an inbound message with a spoofed sender domain reported by 3 users." },
+      { "label": "Triage", "detail": "SOC analyst detonates the link in a sandbox and confirms a credential-harvesting page." },
+      { "label": "Contain", "detail": "Affected mailbox sessions/tokens revoked; the message is purged organization-wide." },
+      { "label": "Eradicate", "detail": "Sender domain blocked at the mail gateway and perimeter firewall." },
+      { "label": "Recover", "detail": "Password reset enforced for every user who clicked the link; MFA re-verified." },
+      { "label": "Lessons Learned", "detail": "Targeted phishing awareness training assigned to the affected department." }
+    ]
+  },
+  {
+    "id": "ransomware",
+    "title": "Ransomware — Mass File Encryption",
+    "severity": "Critical",
+    "steps": [
+      { "label": "Detect", "detail": "EDR alerts on mass file-rename/encryption activity on a file server." },
+      { "label": "Isolate", "detail": "Affected hosts are pulled off the network before spread continues." },
+      { "label": "Preserve Evidence", "detail": "Memory and disk images captured prior to any shutdown or wipe." },
+      { "label": "Identify", "detail": "Malware analysis confirms variant and the initial access vector (exposed RDP)." },
+      { "label": "Recover", "detail": "Clean restore from offline/immutable backups; affected credentials rotated." },
+      { "label": "Post-Incident", "detail": "RDP exposure patched, network segmented, detection rules updated." }
+    ]
+  },
+  {
+    "id": "insider",
+    "title": "Suspected Insider Data Exfiltration",
+    "severity": "High",
+    "steps": [
+      { "label": "Detect", "detail": "DLP alerts on an abnormal volume of records exported by a single account overnight." },
+      { "label": "Triage", "detail": "Access logs correlated against the employee's role — export volume exceeds job function." },
+      { "label": "Contain", "detail": "Account access suspended pending investigation; active sessions terminated." },
+      { "label": "Investigate", "detail": "HR + Legal engaged; forensic review of exported data scope and destination." },
+      { "label": "Remediate", "detail": "Access revoked/offboarded per findings; affected data owners notified." },
+      { "label": "Lessons Learned", "detail": "Least-privilege review triggered for the department's access model." }
+    ]
+  }
+]

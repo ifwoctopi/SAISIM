@@ -1,0 +1,34 @@
+[
+  {
+    "keys": ["phish", "email", "link"],
+    "reply": "Phishing indicators to flag: mismatched sender domain, urgency/fear language, unexpected attachments, and links that don't match the display text. Recommended controls: DMARC/DKIM/SPF enforcement, link sandboxing, and mandatory MFA so a stolen password alone isn't enough to log in."
+  },
+  {
+    "keys": ["ransomware", "encrypt"],
+    "reply": "Ransomware containment priority: isolate affected hosts from the network before they finish encrypting shares, preserve a memory/disk image for forensics, and restore from backups that are offline or immutable. Don't pay before consulting legal/IR counsel."
+  },
+  {
+    "keys": ["brute", "brute-force", "brute force"],
+    "reply": "That auth.log pattern (many failed logins followed by one success) is a classic brute-force indicator. Recommended controls: account lockout/backoff after N failures, MFA on all privileged accounts, and alerting on impossible-travel or off-hours admin logins."
+  },
+  {
+    "keys": ["mfa", "multi-factor", "2fa"],
+    "reply": "MFA should be enforced on anything that reaches sensitive data or admin functions. Phishing-resistant methods (hardware keys, passkeys) resist credential-relay attacks better than SMS or push-based MFA."
+  },
+  {
+    "keys": ["insider", "exfil", "data loss", "dlp"],
+    "reply": "Insider exfiltration usually shows up as unusual volume/timing of data access — a normal user pulling far more records than their role needs. DLP rules, least-privilege access, and alerting on bulk exports are the standard mitigations."
+  },
+  {
+    "keys": ["sql", "injection", "sqli"],
+    "reply": "SQL injection is mitigated primarily with parameterized queries/prepared statements, least-privilege DB accounts, and input validation as defense-in-depth — not a substitute for parameterization."
+  },
+  {
+    "keys": ["firewall", "segmentation", "vlan"],
+    "reply": "The firewall_rules.conf file in this workspace has SSH (22) open too broadly, and OT/Corp VLAN segmentation is disabled. Flat networks let an attacker who lands on one segment pivot freely."
+  },
+  {
+    "keys": ["access control", "rbac", "role", "permission"],
+    "reply": "This workspace demonstrates RBAC: switch role above and watch which files lock/unlock. Then switch Mode to Insecure and try opening a locked file — that's the difference between client-side-only checks and server-enforced access control."
+  }
+]
