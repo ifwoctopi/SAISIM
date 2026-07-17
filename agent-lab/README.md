@@ -8,6 +8,32 @@ The agent is Nous Hermes 3 (via a local Ollama) driving itself at high
 temperature — so every run is different. One poisoned file is enough to make it
 read and exfiltrate simulated "HR salary records" with nothing to stop it.
 
+## Quick start (exact commands)
+
+**Prerequisite:** Docker installed and running. **No AI API key is needed** —
+the model runs locally in a container via Ollama (free, offline), and demo mode
+needs no model at all.
+
+**Option A — see it work right now (no model, ~30 seconds):**
+
+```bash
+cd agent-lab
+chmod +x *.sh
+MODE=demo ./run.sh
+```
+
+**Option B — the real, live demo (Nous Hermes 3, nondeterministic):**
+
+```bash
+cd agent-lab
+chmod +x *.sh
+./setup-model.sh     # one-time; downloads the model (~5 GB, needs internet)
+./run.sh             # runs the demo; repeat a few times to see it behave differently
+```
+
+That is the entire setup. Everything runs in Docker containers and tears itself
+down on exit. The sections below explain what you're seeing and how to verify it.
+
 ## What "wide permissions" means here
 
 The agent has six tools, none of them gated by any policy:
