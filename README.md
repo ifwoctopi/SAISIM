@@ -86,7 +86,9 @@ chmod +x start-ui.sh
 The **first run builds the sandbox container** (a minute or two; needs internet
 once). When it prints a link, open **<http://127.0.0.1:8000>** in your browser.
 In the **Assistant** window, choose **Live AI** (or **Demo**), type a request,
-and press **Ask**. Press **Ctrl+C** in the terminal to stop.
+and press **Ask**. Your changes **persist across prompts** within a session (it's
+a real, stateful computer) — click **⟲ Reset** in the menu bar to wipe the files
+back to fresh. Press **Ctrl+C** in the terminal to stop.
 
 ---
 
@@ -116,7 +118,7 @@ for the real, live AI.
   network with no way out except the AI service**. Its "exfiltration" only
   reaches a local fake inbox — never the real internet. Kill the container and
   everything is gone.
-- Still, since it's a demo of an AI misbehaving, run it on a **personal
+- Still, since it's a demo of an AI misbehaving, run it on a **personal or spare
   computer**, not a locked-down work machine.
 
 Full details and troubleshooting: **[`agent-lab/README.md`](agent-lab/README.md)**.

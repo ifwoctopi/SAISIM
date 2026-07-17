@@ -11,11 +11,12 @@ Backend:
   * /api/fs/list     list a folder in the browsable sandbox
   * /api/fs/read     read a file from the browsable sandbox
   * /api/run  (SSE)  start an agent run, stream each action as it happens
+  * /api/reset       wipe the sandbox back to fresh (new session)
   * /api/health
 
 Two runners (AGENTLAB_RUNNER): docker (default, fully sandboxed via run.sh) or
 local (no Docker, best for the offline demo). Both operate on ./sandbox, which
-the Files app browses live.
+the Files app browses live and which PERSISTS across prompts within a session.
 
 Pure standard library. Start with:  python3 server.py
 """
@@ -62,10 +63,23 @@ _run_lock = threading.Lock()
 
 
 def _seed_sandbox():
-    """(Re)create the browsable sandbox so the Files app always has content."""
+    """Write the fake files into the sandbox (does not wipe extra files first)."""
     env = dict(os.environ, SANDBOX_ROOT=SANDBOX)
     subprocess.run(["python3", "seed_sandbox.py"], cwd=HERE, env=env,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def _reset_session():
+    """Start a fresh session: wipe the sandbox back to clean fake data and clear
+    the logs. Called once at startup and by /api/reset. Between resets the sandbox
+    PERSISTS across prompts, so the demo behaves like a real, stateful computer."""
+    shutil.rmtree(SANDBOX, ignore_errors=True)
+    _seed_sandbox()
+    os.makedirs(LOG_DIR, exist_ok=True)
+    open(ACTION_LOG, "w").close()
+    cap = os.path.join(LOG_DIR, "exfil_captured.log")
+    if os.path.exists(cap):
+        open(cap, "w").close()
 
 
 # --------------------------------------------------------------------------- #
@@ -104,7 +118,9 @@ def fs_read(rel):
 # Runners.
 # --------------------------------------------------------------------------- #
 def _start_docker(mode, model, task):
-    env = dict(os.environ, MODE=mode)
+    # AGENTLAB_SEED=0 tells the container NOT to reseed: the sandbox persists
+    # across prompts within a session (it's only reset at startup / via /api/reset).
+    env = dict(os.environ, MODE=mode, AGENTLAB_SEED="0")
     if model:
         env["MODEL"] = model
     if task:
@@ -115,8 +131,8 @@ def _start_docker(mode, model, task):
 
 
 def _start_local(mode, model, task):
-    """No Docker: reseed the browsable sandbox, run the agent on it, in-process collector."""
-    _seed_sandbox()
+    """No Docker: run the agent on the CURRENT sandbox (persists across prompts),
+    with an in-process collector. Reset only at startup / via /api/reset."""
     capture = os.path.join(LOG_DIR, "exfil_captured.log")
     collector = subprocess.Popen(
         ["python3", "-m", "agent.collector"], cwd=HERE,
@@ -151,7 +167,7 @@ def _start_local(mode, model, task):
 
 def start_run(mode, model, task):
     os.makedirs(LOG_DIR, exist_ok=True)
-    open(ACTION_LOG, "w").close()
+    # NOTE: no seeding or log-wiping here -- the sandbox persists across prompts.
     if RUNNER == "local":
         return _start_local(mode, model, task)
     return _start_docker(mode, model, task)
@@ -207,6 +223,9 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(200, fs_list(qs.get("path", [""])[0]))
             elif path == "/api/fs/read":
                 self._json(200, fs_read(qs.get("path", [""])[0]))
+            elif path == "/api/reset":
+                _reset_session()
+                self._json(200, {"ok": True})
             elif path == "/api/run":
                 self._stream_run(qs)
             else:
@@ -241,8 +260,9 @@ class Handler(BaseHTTPRequestHandler):
         try:
             self._sse({"type": "status", "message": f"Starting {mode} run"
                        + (" (building sandbox on first run…)" if RUNNER == "docker" else "…")})
+            base = len(_read_rows(ACTION_LOG))   # skip earlier prompts' rows (log persists)
             proc, cleanup = start_run(mode, model, task)
-            sent = 0
+            sent = base
             while True:
                 rows = _read_rows(ACTION_LOG)
                 for row in rows[sent:]:
@@ -256,8 +276,9 @@ class Handler(BaseHTTPRequestHandler):
                     break
                 self._sse({"type": "ping"})
                 time.sleep(0.35)
-            flagged = sum(1 for r in _read_rows(ACTION_LOG) if r.get("flagged"))
-            self._sse({"type": "done", "rc": proc.returncode, "flagged": flagged, "steps": sent})
+            run_rows = _read_rows(ACTION_LOG)[base:]
+            flagged = sum(1 for r in run_rows if r.get("flagged"))
+            self._sse({"type": "done", "rc": proc.returncode, "flagged": flagged, "steps": len(run_rows)})
         except BrokenPipeError:
             pass
         except Exception as exc:  # noqa: BLE001
@@ -299,6 +320,8 @@ PAGE = r"""<!doctype html>
     font-size:12.5px;border-bottom:1px solid rgba(255,255,255,.06);z-index:5000}
   #menubar b{letter-spacing:.3px}
   #menubar .sp{margin-left:auto;color:var(--muted)}
+  #resetbtn{cursor:pointer;color:var(--accent)}
+  #resetbtn:hover{text-decoration:underline}
   #aiflag{display:none;color:var(--accent);font-weight:600}
   #aiflag.on{display:inline;animation:pulse 1.3s ease-in-out infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
@@ -394,6 +417,7 @@ PAGE = r"""<!doctype html>
   <div id="menubar">
     <b>My&nbsp;Computer</b>
     <span>File</span><span>Edit</span><span>View</span>
+    <span id="resetbtn" title="Wipe files back to fresh and start a new session">⟲ Reset</span>
     <span id="aiflag">🤖 AI is controlling your computer…</span>
     <span class="sp" id="clock"></span>
   </div>
@@ -569,7 +593,6 @@ function handleStep(row){
   const n = narrate(row);
   feedBubble("act"+(n.danger?" danger":""), n.ic, n.tx, row.result||"");
   addActivity(row);
-  // desktop reacts: mark & open the file the AI touched
   if(["read","write"].includes(row.action) && row.target.includes("/")){
     if(fileState.get(row.target)!=="sent") fileState.set(row.target, row.action==="write" ? "wrote" : "read");
     if(row.flagged && /salary|payroll|credential|secret/i.test(row.target)) lastSensitive=row.target;
@@ -595,7 +618,7 @@ function ask(){
   aiWins.forEach(id=>{ if(wins[id]){ wins[id].remove(); delete wins[id]; } }); aiWins=[]; refreshDock();
   $("#alert").style.display="none";
   showTyping(); setAI(true);
-  fileState.clear(); lastSensitive=null; if(wins["files"]) navigate(curPath);
+  lastSensitive=null; if(wins["files"]) navigate(curPath);   // files/badges persist across prompts
   btn.disabled=true; curBtn=btn; stepQ=[]; runResult=null;
   const mode = (win.querySelector("#mode")||{}).value || "demo";
   const q = new URLSearchParams({mode, prompt});
@@ -614,6 +637,18 @@ function openApp(id){ if(id==="files")openFiles(); else if(id==="assistant")open
 document.querySelectorAll("[data-open]").forEach(el=> el.addEventListener("dblclick",()=>openApp(el.dataset.open)));
 document.querySelectorAll("#dock [data-open]").forEach(el=> el.addEventListener("click",()=>openApp(el.dataset.open)));
 
+// ---- Reset (new session) ----
+document.getElementById("resetbtn").onclick = async ()=>{
+  try{ await fetch("/api/reset"); }catch(e){}
+  fileState.clear(); lastSensitive=null; setAI(false);
+  aiWins.forEach(id=>{ if(wins[id]){ wins[id].remove(); delete wins[id]; } }); aiWins=[];
+  $("#alert").style.display="none"; refreshDock();
+  if(wins["activity"]) wins["activity"].querySelector("#acts").innerHTML='<tr><td class="empty" colspan="4">No activity yet.</td></tr>';
+  if(wins["assistant"]) wins["assistant"].querySelector("#feed").innerHTML=
+    '<div class="msg bot"><div class="ic">🤖</div><div class="tx">Session reset — your files are back to fresh. What should I do?</div></div>';
+  if(wins["files"]) navigate("");
+};
+
 // open the assistant + files on load
 openAssistant(); openFiles();
 </script>
@@ -622,7 +657,7 @@ openAssistant(); openFiles();
 
 
 def main():
-    _seed_sandbox()
+    _reset_session()   # fresh sandbox at the start of each session (server run)
     server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
     print(f"My Computer UI ready  →  http://127.0.0.1:{PORT}   (runner={RUNNER})", flush=True)
     print("Open it in your browser: double-click Files, or ask the Assistant.", flush=True)
