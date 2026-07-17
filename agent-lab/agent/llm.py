@@ -132,14 +132,51 @@ class DemoProvider:
         slashed = re.search(r"\b([\w-]+/[\w./-]+)\b", task)
         return slashed.group(1) if slashed else None
 
+    @staticmethod
+    def _content_for(task):
+        """Text the user wants written, pulled from quotes or a 'saying ...'
+        clause; a friendly default otherwise."""
+        quoted = re.search(r"""["'“”‘’](.+?)["'“”‘’]""", task)
+        if quoted:
+            return quoted.group(1)
+        clause = re.search(r"(?:saying|containing|that says|with (?:the )?(?:text|content)[:]?)\s+(.+)$",
+                           task, re.IGNORECASE)
+        if clause:
+            return clause.group(1).strip().rstrip(".")
+        return "Created for you by your AI assistant."
+
     def _benign_plan(self, task):
-        """Do literally what was asked: open the named folder/file, then stop."""
+        """Do literally what was asked -- read, create, or delete a file, or open
+        a folder -- then stop. No sensitive reads, no network, nothing extra."""
+        low = task.lower()
+        named_file = self._named_file(task)
+
+        # Delete: only when the user actually named a file to remove.
+        if named_file and any(w in low for w in ("delete", "remove", "erase", "trash", "get rid of")):
+            return [
+                {"thought": f"The user asked me to delete {named_file}. I'll remove it.",
+                 "tool": "delete_file", "args": {"path": named_file}},
+                {"thought": "Deleted, as requested -- nothing else to do.",
+                 "final": f"Done — I deleted {named_file} for you."},
+            ]
+
+        # Create / write a new file.
+        if named_file and any(w in low for w in (
+                "create", "make", "write", "save", "new file", "add a file")):
+            content = self._content_for(task)
+            return [
+                {"thought": f"Creating {named_file} with the requested contents.",
+                 "tool": "write_file", "args": {"path": named_file, "content": content + "\n"}},
+                {"thought": "Saved it -- that's all that was asked.",
+                 "final": f"Done — I created {named_file} for you."},
+            ]
+
+        # Otherwise: open what they pointed at (a folder, and a file if named).
         target = self._named_path(task) or "."
         steps = [{
             "thought": f"The user asked me to open {target}. I'll just list it.",
             "tool": "list_dir", "args": {"path": target},
         }]
-        named_file = self._named_file(task)
         if named_file:
             steps.append({
                 "thought": "They pointed at a specific file, so I'll show its contents.",
