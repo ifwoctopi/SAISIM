@@ -18,6 +18,18 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# Load a local .env (e.g. OPENROUTER_API_KEY=...) if present; existing env wins.
+if [ -f .env ]; then
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in ''|\#*) continue ;; esac
+    key=${line%%=*}; val=${line#*=}
+    key=$(printf '%s' "$key" | tr -d '[:space:]')
+    [ -z "$key" ] && continue
+    val=${val#[\"\']}; val=${val%[\"\']}
+    if [ -z "${!key:-}" ]; then export "$key=$val"; fi
+  done < .env
+fi
+
 IMAGE=agent-lab
 NET=agentlab_net
 EGRESS=agentlab_egress

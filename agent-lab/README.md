@@ -39,6 +39,10 @@ banner appears the moment it exfiltrates the fake salary data.
   ./start-ui.sh
   ```
 
+  Prefer not to export it each time? Copy `.env.example` to `.env` and paste your
+  key there — the UI and the terminal script load it automatically, and `.env` is
+  git-ignored so your key is never committed.
+
 **No Docker, or want it to start instantly?** Use the no-container runner
 (recommended for the offline demo):
 
@@ -87,8 +91,8 @@ demo; use the default Docker runner for the live model.)
   Docker isn't installed or running. Install it / start it, or use
   `AGENTLAB_RUNNER=local ./start-ui.sh` to skip Docker entirely.
 - **"permission denied: ./start-ui.sh"** — run `chmod +x start-ui.sh` first.
-- **Live run complains about the key** — make sure `OPENROUTER_API_KEY` is set and
-  your OpenRouter account has credit.
+- **Live run complains about the key** — make sure `OPENROUTER_API_KEY` is set (or
+  in `.env`) and your OpenRouter account has credit.
 - **Start clean:**
   `docker rm -f agentlab_agent agentlab_collector agentlab_proxy 2>/dev/null; rm -rf ./sandbox ./logs`
 

@@ -4,3 +4,4 @@ logs/
 sandbox/
 README.md
 run.sh
+.env

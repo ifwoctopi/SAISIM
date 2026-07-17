@@ -26,6 +26,29 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def _load_dotenv():
+    """Load KEY=VALUE lines from a local .env (agent-lab/.env) into the
+    environment without overwriting anything already set. Lets you keep your
+    OPENROUTER_API_KEY in a file instead of exporting it every time."""
+    path = os.path.join(HERE, ".env")
+    if not os.path.exists(path):
+        return
+    with open(path, "r", encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, val = line.partition("=")
+            key = key.strip()
+            val = val.strip().strip('"').strip("'")
+            if key:
+                os.environ.setdefault(key, val)
+
+
+_load_dotenv()
+
 PORT = int(os.environ.get("SERVER_PORT", "8000"))
 RUNNER = os.environ.get("AGENTLAB_RUNNER", "docker").lower()
 LOG_DIR = os.path.join(HERE, "logs")
