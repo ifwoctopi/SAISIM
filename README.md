@@ -116,7 +116,7 @@ for the real, live AI.
   network with no way out except the AI service**. Its "exfiltration" only
   reaches a local fake inbox — never the real internet. Kill the container and
   everything is gone.
-- Still, since it's a demo of an AI misbehaving, run it on a **personal or spare
+- Still, since it's a demo of an AI misbehaving, run it on a **personal
   computer**, not a locked-down work machine.
 
 Full details and troubleshooting: **[`agent-lab/README.md`](agent-lab/README.md)**.
