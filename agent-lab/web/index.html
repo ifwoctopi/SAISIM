@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<title>Meridian OS</title>
+<link rel="stylesheet" href="/os.css"/>
+</head>
+<body>
+<div id="screen" class="theme-dark">
+
+  <!-- ============ BOOT ============ -->
+  <div id="boot" class="layer">
+    <div class="boot-logo">◆</div>
+    <div class="boot-name">Meridian&nbsp;OS</div>
+    <div class="boot-bar"><i></i></div>
+    <div class="boot-hint">Secure Session · Simulated Environment</div>
+  </div>
+
+  <!-- ============ LOCK / LOGIN ============ -->
+  <div id="lock" class="layer hidden">
+    <div class="lock-clock" id="lockClock">--:--</div>
+    <div class="lock-date" id="lockDate"></div>
+    <div class="lock-user">
+      <div class="avatar" id="lockAvatar">JR</div>
+      <div class="lock-name">Jordan Reyes</div>
+      <div class="lock-sub">CFO · Meridian Atlas Group</div>
+      <button id="loginBtn" class="login-btn">Enter</button>
+      <div class="lock-note">Fake data · sandboxed demo · nothing here is real</div>
+    </div>
+  </div>
+
+  <!-- ============ DESKTOP ============ -->
+  <div id="desktop" class="hidden">
+
+    <!-- top menu bar -->
+    <div id="menubar">
+      <span class="mb-logo">◆</span>
+      <b id="mbApp">Finder</b>
+      <span class="mb-item" data-menu="file">File</span>
+      <span class="mb-item" data-menu="edit">Edit</span>
+      <span class="mb-item" data-menu="view">View</span>
+      <span class="mb-item" data-menu="go">Go</span>
+      <span class="mb-spacer"></span>
+      <span id="aiIndicator" class="mb-ai" title="Meridian Intelligence">✦ AI</span>
+      <span class="mb-tray" id="traySearch" title="Spotlight (Ctrl/⌘ K)">⌕</span>
+      <span class="mb-tray" id="trayControl" title="Control Center">⌃</span>
+      <span class="mb-tray" id="trayBattery" title="Battery">%</span>
+      <span class="mb-tray" id="trayWifi" title="Network">≋</span>
+      <span class="mb-clock" id="mbClock"></span>
+    </div>
+
+    <!-- desktop surface (icons + windows live here) -->
+    <div id="surface">
+      <div id="desktopIcons"></div>
+    </div>
+
+    <!-- dock -->
+    <div id="dock"></div>
+
+    <!-- spotlight -->
+    <div id="spotlight" class="overlay hidden">
+      <div class="spot-box">
+        <div class="spot-input-row">
+          <span class="spot-ic">✦</span>
+          <input id="spotInput" placeholder="Search files, apps, or ask the AI anything…" autocomplete="off"/>
+        </div>
+        <div id="spotResults" class="spot-results"></div>
+      </div>
+    </div>
+
+    <!-- control center -->
+    <div id="control" class="popover hidden"></div>
+
+    <!-- app menus -->
+    <div id="appmenu" class="popover hidden"></div>
+
+    <!-- notification center -->
+    <div id="notifications"></div>
+
+    <!-- context menu -->
+    <div id="ctxmenu" class="popover hidden"></div>
+
+    <!-- global AI activity overlay banner -->
+    <div id="aiBanner" class="hidden"><span class="dot"></span><span id="aiBannerText">Meridian Intelligence is working…</span></div>
+  </div>
+
+</div>
+
+<script src="/core.js"></script>
+<script src="/ai.js"></script>
+<script src="/apps/files.js"></script>
+<script src="/apps/assistant.js"></script>
+<script src="/apps/mail.js"></script>
+<script src="/apps/messages.js"></script>
+<script src="/apps/contacts.js"></script>
+<script src="/apps/calendar.js"></script>
+<script src="/apps/notes.js"></script>
+<script src="/apps/keychain.js"></script>
+<script src="/apps/wallet.js"></script>
+<script src="/apps/photos.js"></script>
+<script src="/apps/browser.js"></script>
+<script src="/apps/terminal.js"></script>
+<script src="/apps/settings.js"></script>
+<script src="/apps/activity.js"></script>
+<script>window.addEventListener("load", () => OS.boot());</script>
+</body>
+</html>

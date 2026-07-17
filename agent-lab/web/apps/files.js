@@ -88,12 +88,14 @@
         if (a.quicklook || a.open || a.focus) { OS.openApp("viewer", { path: a.quicklook || a.open || a.focus }); nav((a.quicklook || a.open || a.focus).split("/").slice(0, -1).join("/")); }
         else if (a.path != null) nav(a.path);
       };
+      // initial
       if (arg && (arg.quicklook || arg.open || arg.focus)) win.onArg(arg);
       else nav(arg && arg.path != null ? arg.path : "");
       win._refresh = () => nav(win._path);
     },
   });
 
+  /* -------- Quick Look viewer (non-singleton) -------- */
   OS.registerApp({
     id: "viewer", name: "Quick Look", icon: "🔎", width: 620, height: 460, noDock: true, singleton: false,
     render(win, arg) {
