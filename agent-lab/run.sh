@@ -40,6 +40,7 @@ mkdir -p ./sandbox ./logs
 docker rm -f agentlab_collector >/dev/null 2>&1 || true
 docker run -d --name agentlab_collector \
   --network "$NET" --network-alias collector \
+  --user "$(id -u):$(id -g)" \
   --cap-drop ALL --security-opt no-new-privileges --pids-limit 64 \
   -v "$PWD/logs:/var/log/agentlab" \
   --entrypoint python "$IMAGE" -m agent.collector >/dev/null
@@ -74,7 +75,7 @@ TTY=""; [ -t 0 ] && [ -t 1 ] && TTY="-t"
 docker run --rm -i $TTY \
   --name agentlab_agent \
   --network "$NET" \
-  --user 10001 \
+  --user "$(id -u):$(id -g)" \
   --cap-drop ALL \
   --security-opt no-new-privileges \
   --read-only \
