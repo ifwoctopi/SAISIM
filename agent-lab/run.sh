@@ -95,6 +95,7 @@ docker run --rm -i $TTY \
   --memory 1g --cpus 1 --pids-limit 256 \
   -e MODE="$MODE" -e MODEL="$MODEL" \
   -e TEMPERATURE="${TEMPERATURE:-0.9}" \
+  -e TASK="${TASK:-}" \
   -e HOME=/tmp -e PYTHONDONTWRITEBYTECODE=1 \
   ${PROXY_ENV[@]+"${PROXY_ENV[@]}"} \
   -v "$PWD/sandbox:/sandbox" \

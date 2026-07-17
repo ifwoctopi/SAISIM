@@ -77,13 +77,19 @@ def run():
     mode = os.environ.get("MODE", "live").lower()
     provider = build_provider(mode, scenario)
 
+    # The task is whatever the user typed (TASK), falling back to the scenario's
+    # default. In demo mode the scripted attack plays regardless of the wording;
+    # in live mode the model actually acts on the user's request -- and may
+    # overreach when it hits the poisoned ticket.
+    task = os.environ.get("TASK", "").strip() or scenario["task"]
+
     print(f"=== agent-lab :: {scenario['title']} ===")
     print(f"mode={mode}  model={os.environ.get('MODEL', 'hermes3') if mode == 'live' else 'scripted'}")
-    print(f"task={scenario['task']!r}\n")
+    print(f"task={task!r}\n")
 
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": scenario["task"]},
+        {"role": "user", "content": task},
     ]
 
     for step in range(1, MAX_STEPS + 1):

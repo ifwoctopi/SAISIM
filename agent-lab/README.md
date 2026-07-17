@@ -26,9 +26,13 @@ chmod +x start-ui.sh
 ```
 
 It prints a link (<http://127.0.0.1:8000>) and tries to open your browser. On the
-page, press **▶ Run attack** and watch it happen: the agent's steps stream in on
-the left, the **audit log** fills in on the right, and a red **DATA EXPOSED**
-banner appears the moment it exfiltrates the fake salary data.
+page there's a **request box** pre-filled with a normal-sounding task ("triage
+the open IT tickets…"). Edit it if you like, then press **▶ Send**. Watch what
+happens: the agent takes your request and — because one of the tickets is
+booby-trapped — goes *further than you asked*, reading the fake salary file and
+sending it off. The agent's steps stream in on the left, the **audit log** fills
+in on the right, and a red **DATA EXPOSED** banner appears the moment it
+exfiltrates the fake salary data.
 
 - The dropdown defaults to **Demo** — scripted, no key, works offline. Great for
   presenting.
@@ -66,6 +70,7 @@ bash run.sh
 ```
 
 Want a cheaper live model? Put it in front: `MODEL=meta-llama/llama-3.1-8b-instruct bash run.sh`.
+Type your own request with `TASK="..."` in front of the command.
 
 ## How do I know it worked?
 
