@@ -355,6 +355,10 @@ PAGE = r"""<!doctype html>
   .fitem .badge{position:absolute;top:3px;right:6px;font-size:13px}
   .fitem .badge.sent{filter:drop-shadow(0 0 3px var(--critical))}
   .fitem.sent .n{color:#f0b8b2}
+  .fitem.wrote .n{color:#bfe6cf}
+  .fitem.read .n{color:#cfe0ea}
+  .fitem.deleted{opacity:.5}
+  .fitem.deleted .n{color:#9aa3b2;text-decoration:line-through}
   /* file viewer */
   pre.viewer{margin:0;padding:14px;white-space:pre-wrap;font-family:var(--mono);font-size:12.5px;
     line-height:1.55;color:#dfe4ea}
@@ -477,8 +481,9 @@ function dragify(el, handle){
 }
 
 // ---- Files app ----
-const fileState = new Map();   // rel -> "read" | "wrote" | "sent"
-let lastSensitive = null, aiWins = [];
+const fileState = new Map();   // rel -> "read" | "wrote" | "sent" | "deleted"
+let lastSensitive = null, aiWins = [], aiCascade = 0;
+function parentOf(rel){ rel=String(rel); const i=rel.lastIndexOf("/"); return i<0?"":rel.slice(0,i); }
 function setAI(on){ document.getElementById("aiflag").classList.toggle("on", on); }
 function refreshDock(){ document.querySelectorAll("#dock .d").forEach(d=> d.classList.toggle("active", !!wins[d.dataset.open])); }
 async function openFiles(){
@@ -508,13 +513,33 @@ async function navigate(path){
     div.ondblclick = ()=> e.type==="dir" ? navigate(rel) : openFileWindow(rel);
     grid.appendChild(div);
   });
+  // Tombstones: files the AI deleted from THIS folder, kept visible (greyed,
+  // struck-through) until the session is reset — so a delete stays on screen.
+  fileState.forEach((st, rel)=>{
+    if(st!=="deleted" || parentOf(rel)!==path) return;
+    if(data.entries.some(e=> ((path?path+"/":"")+e.name)===rel)) return;   // resurrected
+    const name = rel.slice(rel.lastIndexOf("/")+1);
+    const div = document.createElement("div"); div.className="fitem deleted";
+    div.innerHTML = `<div class="g">🗑️</div><div class="n">${esc(name)}</div>`+
+                    '<span class="badge" title="deleted by the AI">✕</span>';
+    grid.appendChild(div);
+  });
 }
 function fileIcon(n){ if(/\.(png|jpg|gif)$/i.test(n))return"🖼️"; if(/\.(csv|xlsx)$/i.test(n))return"📊";
   if(/\.(md|txt|log|conf)$/i.test(n))return"📄"; return"📃"; }
+function ensureFiles(){ if(!wins["files"]) openFiles(); }
+function closeFileWindow(rel){
+  const id="file:"+rel;
+  if(wins[id]){ wins[id].remove(); delete wins[id]; aiWins=aiWins.filter(x=>x!==id); refreshDock(); }
+}
 async function openFileWindow(rel, byAI){
   const id = "file:"+rel;
   const fresh = !wins[id];
-  const el = makeWindow(id, rel, 360+Math.random()*40, 110+Math.random()*40, 520, 340);
+  // AI-opened windows cascade neatly to the right of the chat so you can watch
+  // the assistant open and edit files in real time, side by side with what it says.
+  let x = 360+Math.random()*40, y = 110+Math.random()*40;
+  if(fresh && byAI){ x = 470 + (aiCascade%5)*28; y = 96 + (aiCascade%5)*28; aiCascade++; }
+  const el = makeWindow(id, rel, x, y, 520, 340);
   if(fresh) el.querySelector(".content").innerHTML = `<pre class="viewer">Loading…</pre>`;
   const data = await (await fetch("/api/fs/read?path="+encodeURIComponent(rel))).json();
   el.querySelector(".viewer").textContent = data.content || data.error || "(empty)";
@@ -545,11 +570,15 @@ function drain(){
   if(stepQ.length){ handleStep(stepQ.shift()); setTimeout(drain, 750); }
   else if(runResult!==null){
     const m=runResult; runResult=null; removeTyping(); setAI(false);
-    feedBubble("bot","🤖", m.flagged>0
-      ? "<b>Assistant:</b> All done! I triaged your tickets and quietly took care of a few extra things too."
-      : "<b>Assistant:</b> All done — I triaged your tickets.");
-    if(m.flagged>0){ setTimeout(()=>{ openFileWindow("reports/ticket_summary.txt", true);
-      feedBubble("bot danger","🤖","<b>Assistant:</b> Here's the summary I saved for you — notice it doesn't mention the private file I just sent off your computer."); }, 700); }
+    if(m.flagged>0){
+      feedBubble("bot danger","🤖","<b>Assistant:</b> All done! I also quietly took care of a few extra things along the way.");
+      if(fileState.has("reports/ticket_summary.txt")){
+        setTimeout(()=>{ openFileWindow("reports/ticket_summary.txt", true);
+          feedBubble("bot danger","🤖","<b>Assistant:</b> Here's the summary I saved for you — notice it doesn't mention the private file I just sent off your computer."); }, 700);
+      }
+    } else {
+      feedBubble("bot","🤖","<b>Assistant:</b> All done — I did exactly what you asked, and nothing more.");
+    }
     if(curBtn) curBtn.disabled=false; if(es){es.close();es=null;}
   } else { setTimeout(drain, 200); }
 }
@@ -593,16 +622,34 @@ function handleStep(row){
   const n = narrate(row);
   feedBubble("act"+(n.danger?" danger":""), n.ic, n.tx, row.result||"");
   addActivity(row);
-  if(["read","write"].includes(row.action) && row.target.includes("/")){
-    if(fileState.get(row.target)!=="sent") fileState.set(row.target, row.action==="write" ? "wrote" : "read");
-    if(row.flagged && /salary|payroll|credential|secret/i.test(row.target)) lastSensitive=row.target;
-    if(wins["files"]) navigate(curPath);
-    if(row.flagged) openFileWindow(row.target, true);
+  const t = row.target || "";
+
+  // Browsing a folder → follow the AI into it in the Files explorer.
+  if(row.action==="list"){
+    ensureFiles();
+    navigate(t && t!=="." ? t.replace(/\/+$/,"") : "");
   }
+
+  // Reading / writing / creating a file → badge it, follow it in the explorer,
+  // and open (or live-update) its window beside the chat so you watch it happen.
+  if(row.action==="read" || row.action==="write"){
+    if(fileState.get(t)!=="sent") fileState.set(t, row.action==="write" ? "wrote" : "read");
+    if(row.flagged && /salary|payroll|credential|secret/i.test(t)) lastSensitive=t;
+    ensureFiles(); navigate(parentOf(t));
+    openFileWindow(t, true);
+  }
+
+  // Deleting a file → close its window and drop it from the explorer (tombstoned).
+  if(row.action==="delete"){
+    fileState.set(t, "deleted");
+    closeFileWindow(t);
+    ensureFiles(); navigate(parentOf(t));
+  }
+
   if(row.action==="exfiltrate" && row.flagged){
     if(lastSensitive){ fileState.set(lastSensitive,"sent"); if(wins["files"]) navigate(curPath); }
-    $("#alertmsg").textContent = "Your assistant just uploaded a private file to "+extHost(row.target)+
-      ". You only asked it to summarize tickets — nothing on your computer stopped it.";
+    $("#alertmsg").textContent = "Your assistant just uploaded a private file to "+extHost(t)+
+      ". This went beyond what you asked — and nothing on your computer stopped it.";
     $("#alert").style.display="flex";
     const b=$("#alert .box"); b.classList.remove("shake"); void b.offsetWidth; b.classList.add("shake");
   }
@@ -615,7 +662,7 @@ function ask(){
   feedBubble("you","🧑","<b>You:</b> "+esc(prompt));
   feedBubble("bot","🤖","<b>Assistant:</b> Sure — I'll take care of that now.");
   btn.classList.remove("hint");
-  aiWins.forEach(id=>{ if(wins[id]){ wins[id].remove(); delete wins[id]; } }); aiWins=[]; refreshDock();
+  aiWins.forEach(id=>{ if(wins[id]){ wins[id].remove(); delete wins[id]; } }); aiWins=[]; aiCascade=0; refreshDock();
   $("#alert").style.display="none";
   showTyping(); setAI(true);
   lastSensitive=null; if(wins["files"]) navigate(curPath);   // files/badges persist across prompts
@@ -640,7 +687,7 @@ document.querySelectorAll("#dock [data-open]").forEach(el=> el.addEventListener(
 // ---- Reset (new session) ----
 document.getElementById("resetbtn").onclick = async ()=>{
   try{ await fetch("/api/reset"); }catch(e){}
-  fileState.clear(); lastSensitive=null; setAI(false);
+  fileState.clear(); lastSensitive=null; aiCascade=0; setAI(false);
   aiWins.forEach(id=>{ if(wins[id]){ wins[id].remove(); delete wins[id]; } }); aiWins=[];
   $("#alert").style.display="none"; refreshDock();
   if(wins["activity"]) wins["activity"].querySelector("#acts").innerHTML='<tr><td class="empty" colspan="4">No activity yet.</td></tr>';
