@@ -2,6 +2,7 @@
 **/*.pyc
 logs/
 sandbox/
+web/
 README.md
 run.sh
 .env
