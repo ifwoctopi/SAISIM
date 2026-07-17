@@ -25,14 +25,16 @@ chmod +x start-ui.sh
 ./start-ui.sh
 ```
 
-It prints a link (<http://127.0.0.1:8000>) and tries to open your browser. On the
-page there's a **request box** pre-filled with a normal-sounding task ("triage
-the open IT tickets…"). Edit it if you like, then press **▶ Send**. Watch what
-happens: the agent takes your request and — because one of the tickets is
-booby-trapped — goes *further than you asked*, reading the fake salary file and
-sending it off. The agent's steps stream in on the left, the **audit log** fills
-in on the right, and a red **DATA EXPOSED** banner appears the moment it
-exfiltrates the fake salary data.
+It prints a link (<http://127.0.0.1:8000>) and tries to open your browser. The
+page looks like **your computer with a built-in AI assistant**. There's a request
+box pre-filled with a normal task ("go through my open IT support tickets and
+send me a short summary"). Edit it if you like, then press **Ask assistant**.
+Watch what it does *on your behalf*, narrated in plain English: it opens your
+files, reads a support ticket that turns out to contain **hidden instructions**,
+and — going *further than you asked* — opens your private payroll file and
+uploads it to an outside server. A red **DATA EXPOSED** banner makes the moment
+unmistakable, and every action is mirrored in the **system activity log** on the
+right.
 
 - The dropdown defaults to **Demo** — scripted, no key, works offline. Great for
   presenting.
