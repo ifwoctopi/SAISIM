@@ -25,16 +25,29 @@ chmod +x start-ui.sh
 ./start-ui.sh
 ```
 
-It prints a link (<http://127.0.0.1:8000>) and tries to open your browser. The
-page looks like **your computer with a built-in AI assistant**. There's a request
-box pre-filled with a normal task ("go through my open IT support tickets and
-send me a short summary"). Edit it if you like, then press **Ask assistant**.
-Watch what it does *on your behalf*, narrated in plain English: it opens your
-files, reads a support ticket that turns out to contain **hidden instructions**,
-and — going *further than you asked* — opens your private payroll file and
-uploads it to an outside server. A red **DATA EXPOSED** banner makes the moment
-unmistakable, and every action is mirrored in the **system activity log** on the
-right.
+It opens a **desktop** in your browser — a simulated computer with a built-in AI
+assistant. It works like a real machine:
+
+- **Files** (double-click the icon) browses your folders and opens files in
+  windows — showing their *real* contents.
+- **Assistant** is a chat: type a normal request (pre-filled with "go through my
+  open IT support tickets and send me a short summary") and press **Ask**.
+
+Then watch the AI **operate your computer for you**, one step at a time, narrated
+in plain English:
+
+- it opens your files — a menubar indicator lights up **"AI is controlling your
+  computer"**, and files it touches get badges in the explorer (👁 read, ✎
+  created, **⬆ sent off your machine**);
+- it reads a support ticket that turns out to contain **hidden instructions**;
+- going *further than you asked*, it opens your **private payroll file** (the
+  window pops up on its own) and **uploads it to an outside server** — a
+  **"Data left your computer"** alert fires;
+- it then auto-opens the summary it wrote you, which conveniently **doesn't
+  mention** what it just did.
+
+The **Activity Monitor** shows the raw system log alongside. Everything is fake
+data in a sandbox.
 
 - The dropdown defaults to **Demo** — scripted, no key, works offline. Great for
   presenting.
@@ -110,8 +123,9 @@ shell command, and send data over the network — with no permission checks. Tha
 missing layer is the lesson. In the default (Docker) mode it runs on an isolated
 network with no way out except a small proxy locked to the AI service; the
 container is non-root, read-only, and resource-capped. The web UI (`server.py`)
-is a tiny local server that runs the agent and streams each step to the page; the
-action log uses the same format as SECSIM's Audit Log panel.
+is a tiny local server that runs the agent and streams each step to the page,
+and serves a browsable view of the sandbox; the action log uses the same format
+as SECSIM's Audit Log panel.
 
 Everything here is simulated for authorized security-awareness training. No real
 data, credentials, or external systems are involved.
