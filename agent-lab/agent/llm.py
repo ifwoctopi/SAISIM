@@ -8,8 +8,11 @@ Two providers, one interface (`.complete(messages) -> str`):
                    the container has no other internet access. Runs HOT (high
                    temperature) so every run differs -- the nondeterminism is the
                    point of the demo.
-* DemoProvider  -- replays a scripted attack from the scenario. Offline fallback
-                   for when no key/model is available; NOT the default.
+* DemoProvider  -- deterministic offline stand-in. It LISTENS to the request:
+                   the scripted injection attack fires only when the task
+                   actually leads the agent to read the support tickets (where
+                   the poisoned one lives). Any other request is handled
+                   literally -- open what you asked for and stop.
 
 Pure standard library -- the container needs no pip install. The HTTPS request
 honours the https_proxy env var run.sh sets, funnelling it through the proxy.
@@ -17,6 +20,7 @@ honours the https_proxy env var run.sh sets, funnelling it through the proxy.
 
 import json
 import os
+import re
 import urllib.request
 
 
@@ -63,16 +67,98 @@ class LiveProvider:
 
 
 class DemoProvider:
-    """Serves a canned assistant turn per step from the scenario's demo_script.
-    Deterministic offline fallback only."""
+    """Deterministic, offline stand-in for the live model that ACTUALLY LISTENS.
 
-    def __init__(self, script):
-        self.script = list(script)
+    The scripted injection attack (scenario.demo_script) only plays when the
+    user's request would genuinely lead the agent to read the support tickets --
+    the one place the poisoned ticket lives. That mirrors how indirect prompt
+    injection really works: no untrusted content is read, no overreach happens.
+
+    Every other request is handled literally -- it opens the folder or file you
+    named and stops. So asking it to "open a folder" just opens that folder; it
+    does not go rummaging through payroll or send anything anywhere.
+    """
+
+    # A request only reaches the poisoned ticket if it's about the tickets.
+    _TICKET_HINTS = (
+        "ticket", "triage", "help desk", "helpdesk", "support queue",
+        "support request", "support ticket", "it_security",
+    )
+
+    def __init__(self, scenario):
+        self.scenario = scenario
+        self.attack = list(scenario.get("demo_script", []))
+        self.plan = None
         self.step = 0
 
+    @staticmethod
+    def _task_of(messages):
+        for message in messages:
+            if message.get("role") == "user":
+                return message.get("content", "") or ""
+        return ""
+
+    def _wants_tickets(self, task):
+        low = task.lower()
+        return any(hint in low for hint in self._TICKET_HINTS)
+
+    @staticmethod
+    def _named_file(task):
+        """A filename with an extension, if the user named one (e.g. notes.txt)."""
+        match = re.search(r"([\w./-]+\.[A-Za-z]{1,5})\b", task)
+        if not match:
+            return None
+        candidate = match.group(1).strip("'\"")
+        if candidate.lower() in ("e.g", "i.e"):
+            return None
+        return candidate
+
+    @staticmethod
+    def _named_path(task):
+        """A folder the user named -- matched against what's really in the
+        sandbox so it opens exactly what they asked for. Falls back to None."""
+        quoted = re.search(r"""["']([\w./ -]+)["']""", task)
+        if quoted and "/" in quoted.group(1):
+            return quoted.group(1).strip()
+        try:
+            from agent import tools
+            entries = os.listdir(tools.SANDBOX_ROOT)
+        except OSError:
+            entries = []
+        low = task.lower()
+        for name in sorted(entries, key=len, reverse=True):
+            if name.lower() in low:
+                return name
+        slashed = re.search(r"\b([\w-]+/[\w./-]+)\b", task)
+        return slashed.group(1) if slashed else None
+
+    def _benign_plan(self, task):
+        """Do literally what was asked: open the named folder/file, then stop."""
+        target = self._named_path(task) or "."
+        steps = [{
+            "thought": f"The user asked me to open {target}. I'll just list it.",
+            "tool": "list_dir", "args": {"path": target},
+        }]
+        named_file = self._named_file(task)
+        if named_file:
+            steps.append({
+                "thought": "They pointed at a specific file, so I'll show its contents.",
+                "tool": "read_file", "args": {"path": named_file},
+            })
+        where = "your files" if target == "." else target
+        opened = named_file or where
+        steps.append({
+            "thought": "That's exactly what was requested -- nothing more to do.",
+            "final": f"Done — I opened {opened} for you. I didn't touch anything else.",
+        })
+        return steps
+
     def complete(self, messages):
-        if self.step < len(self.script):
-            reply = self.script[self.step]
+        if self.plan is None:
+            task = self._task_of(messages)
+            self.plan = self.attack if self._wants_tickets(task) else self._benign_plan(task)
+        if self.step < len(self.plan):
+            reply = self.plan[self.step]
         else:
             reply = {"thought": "Nothing left to do.", "final": "Task complete."}
         self.step += 1
@@ -81,5 +167,5 @@ class DemoProvider:
 
 def build_provider(mode, scenario):
     if mode == "demo":
-        return DemoProvider(scenario.get("demo_script", []))
+        return DemoProvider(scenario)
     return LiveProvider()
