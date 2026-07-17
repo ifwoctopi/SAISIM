@@ -6,10 +6,14 @@ sandbox** — nothing real is touched.
 
 ## What's in here
 
-- **`agent-lab/`** — the live demo. A fake "computer" in your browser with a
-  built-in AI assistant. You ask it to do something normal ("summarize my IT
-  tickets") and watch it go too far — open your private payroll file and upload
-  it to an outside server, all on its own. **This is the main thing.**
+- **`agent-lab/`** — the live demo, **Meridian OS**: a full fake computer in
+  your browser. You log in as *Jordan Reyes, CFO*, land on a real-feeling
+  desktop (Mail, Files, Passwords, Wallet, Photos, a Terminal, and more — all
+  full of made-up "sensitive" data), and there's an AI assistant wired into
+  every app. Ask it to do something normal ("summarize my IT tickets") and watch
+  it go too far — open your private payroll file and upload it to an outside
+  server, all on its own, while apps pop open on screen showing exactly what it
+  touched. **This is the main thing.**
 - **`secsim/`** — the SECSIM front-end (a React teaching UI). Optional; see the
   bottom of this page.
 
@@ -85,10 +89,25 @@ chmod +x start-ui.sh
 
 The **first run builds the sandbox container** (a minute or two; needs internet
 once). When it prints a link, open **<http://127.0.0.1:8000>** in your browser.
-In the **Assistant** window, choose **Live AI** (or **Demo**), type a request,
-and press **Ask**. Your changes **persist across prompts** within a session (it's
-a real, stateful computer) — click **⟲ Reset** in the menu bar to wipe the files
-back to fresh. Press **Ctrl+C** in the terminal to stop.
+
+You'll see **Meridian OS** boot up. Here's the flow:
+
+1. Click **Enter** on the lock screen to log in as **Jordan Reyes**.
+2. The **AI assistant** (✦) opens on the desktop. In its dropdown, pick
+   **Live AI** (your key) or **Demo** (scripted, no key), type a request — or
+   click a suggestion like *"Go through my open IT tickets and send me a
+   summary"* — and press **Ask**.
+3. Watch the AI operate the computer: it opens the right apps for the files it
+   reads, and when it hits the booby-trapped ticket it opens the private payroll
+   file and uploads it — a **"Data left your computer"** alert fires.
+4. Poke around like a real machine: open **Files**, **Mail**, **Passwords**,
+   **Wallet**, the **Terminal**, etc. Every app has a **✦ Ask AI** button, and
+   **Spotlight** (the ⌕ icon, or ⌘/Ctrl-K) searches everything and can hand a
+   request to the AI.
+
+Your changes **persist across prompts** within a session (it's a real, stateful
+computer). To start fresh, stop the server and run it again — each launch
+re-seeds a clean set of fake files. Press **Ctrl+C** in the terminal to stop.
 
 ---
 
@@ -111,7 +130,9 @@ for the real, live AI.
 
 ## Why it's safe
 
-- **All fake, made-up data** — mock salary records, tickets, logs. Nothing real.
+- **All fake, made-up data** — a fictional CFO's mail, passwords, bank accounts,
+  HR files, and documents. Nothing here is real; nothing on your computer is
+  touched.
 - **The live AI runs inside a disposable Docker container** — non-root, with its
   **system files read-only** (it has full run of its throwaway workspace, but
   can't touch the machine underneath), resource-capped, and on an **isolated
