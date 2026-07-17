@@ -5,102 +5,102 @@ folder of **fake** company data, then plants a booby-trapped file that tricks th
 agent into stealing the fake "salary records" — entirely on its own. It shows,
 live, why handing an AI too much access is dangerous.
 
-Everything is made-up data and runs inside a locked-down, throwaway container.
+Everything is made-up data and runs inside a locked-down, throwaway sandbox.
 Nothing on your computer is touched.
 
 ## What you need
 
 - **Docker**, installed and running. (Get it at <https://docs.docker.com/get-docker/>,
   then open Docker Desktop — or on Linux, start the docker service.)
+- **Python 3** — already installed on Linux and macOS. (Only used to serve the web page.)
 - *For the live version only:* a cheap **OpenRouter** API key
   (<https://openrouter.ai/keys>) with a couple dollars of credit. A full run
   costs a fraction of a cent.
 
-No AI software on your machine, no GPU, no big downloads.
+## Easiest: the one-click web UI
 
-## Try it in 30 seconds (no account, no key)
+```bash
+cd agent-lab
+chmod +x start-ui.sh
+./start-ui.sh
+```
 
-Open a terminal and run:
+It prints a link (<http://127.0.0.1:8000>) and tries to open your browser. On the
+page, press **▶ Run attack** and watch it happen: the agent's steps stream in on
+the left, the **audit log** fills in on the right, and a red **DATA EXPOSED**
+banner appears the moment it exfiltrates the fake salary data.
+
+- The dropdown defaults to **Demo** — scripted, no key, works offline. Great for
+  presenting.
+- For the **Live** AI (it decides for itself, so every run differs), set your key
+  first, then pick "Live" in the dropdown:
+  ```bash
+  export OPENROUTER_API_KEY=sk-or-...your-key...
+  ./start-ui.sh
+  ```
+
+**No Docker, or want it to start instantly?** Use the no-container runner
+(recommended for the offline demo):
+
+```bash
+AGENTLAB_RUNNER=local ./start-ui.sh
+```
+
+Press Ctrl+C in the terminal to stop the server.
+
+## Prefer the terminal? (no browser)
+
+You can run the same thing straight in a terminal — the output *is* the demo:
 
 ```bash
 cd agent-lab
 chmod +x run.sh
-MODE=demo ./run.sh
+MODE=demo bash run.sh                    # scripted, no key
+# live version:
+export OPENROUTER_API_KEY=sk-or-...
+bash run.sh
 ```
 
-This runs a **scripted** version of the attack — no key needed. Watch the output:
-the agent reads a fake support ticket, gets tricked into opening the fake salary
-file, and "sends it off" to a fake attacker. A red-flag summary prints at the
-end. (The first run takes a minute while it builds a small container; after that
-it's quick.)
-
-## Run the real thing (a live AI decides for itself)
-
-1. Make a free OpenRouter account and create an API key at
-   <https://openrouter.ai/keys> (add a few dollars of credit).
-2. In your terminal:
-
-```bash
-cd agent-lab
-chmod +x run.sh
-export OPENROUTER_API_KEY=sk-or-...paste-your-key-here...
-./run.sh
-```
-
-Now a real AI model runs the show. Because it makes its own choices, **every run
-is different** — sometimes it falls for the trap, sometimes it gets creative,
-sometimes it refuses. Run it a few times; that unpredictability is the point. If
-a run ends with "no flagged actions," the AI declined — just run it again.
-
-Want it cheaper? Put a model in front of the command:
-
-```bash
-MODEL=meta-llama/llama-3.1-8b-instruct ./run.sh
-```
+Want a cheaper live model? Put it in front: `MODEL=meta-llama/llama-3.1-8b-instruct bash run.sh`.
 
 ## How do I know it worked?
 
-At the end of a run you'll see an **after-action report** listing "flagged"
-actions — the agent reading the salary file and sending it out. You can also look at:
-
-```bash
-cat ./logs/actions.jsonl        # a log of everything the agent did
-cat ./logs/exfil_captured.log   # the fake data it "stole"
-```
+Either way you'll see the agent read the poisoned ticket, open the fake salary
+file (which the task never asked it to), and send it to a fake attacker. The web
+UI shows a **DATA EXPOSED** banner; the terminal prints a **flagged actions**
+summary. The full log of everything the agent did is saved to
+`logs/actions.jsonl`, and the "stolen" fake data to `logs/exfil_captured.log`.
 
 ## Is it safe to run?
 
-Yes. The agent is boxed into a **disposable container** that:
-
-- can only touch two throwaway folders (`sandbox` and `logs`) — never your real files;
-- can't reach the internet **except** the AI service — so its "stolen" data goes
-  to a fake local inbox, not anywhere real;
-- disappears when the run ends.
-
-Everything it works with is **fake, made-up data**. Still, because it's a demo of
-an AI behaving badly, run it on a **personal or spare computer**, not a
-locked-down work machine.
+Yes. Everything it touches is **fake, made-up data**, and the agent is boxed into
+a **disposable sandbox** that can only use two throwaway folders (`sandbox` and
+`logs`), can't reach the internet except the AI service, and disappears when the
+run ends. Because it's a demo of an AI behaving badly, run it on a **personal or
+spare computer**, not a locked-down work machine. (The `local` runner runs the
+agent directly on your machine instead of in a container — fine for the scripted
+demo; use the default Docker runner for the live model.)
 
 ## If something goes wrong
 
-- **"docker: command not found" or "Cannot connect to the Docker daemon"** —
-  Docker isn't installed or isn't running. Install it and start Docker Desktop
-  (or the docker service), then try again.
-- **"permission denied: ./run.sh"** — run `chmod +x run.sh` first (or use `bash run.sh`).
+- **"docker: command not found" / "Cannot connect to the Docker daemon"** —
+  Docker isn't installed or running. Install it / start it, or use
+  `AGENTLAB_RUNNER=local ./start-ui.sh` to skip Docker entirely.
+- **"permission denied: ./start-ui.sh"** — run `chmod +x start-ui.sh` first.
 - **Live run complains about the key** — make sure `OPENROUTER_API_KEY` is set and
   your OpenRouter account has credit.
 - **Start clean:**
-  `docker rm -f agentlab_agent agentlab_collector agentlab_proxy; rm -rf ./sandbox ./logs`
+  `docker rm -f agentlab_agent agentlab_collector agentlab_proxy 2>/dev/null; rm -rf ./sandbox ./logs`
 
 ## Under the hood (for the curious)
 
 The agent has deliberately unguarded tools — read/write/delete files, run any
 shell command, and send data over the network — with no permission checks. That
-missing layer is the lesson. To keep it contained it runs on an isolated Docker
+missing layer is the lesson. In the default (Docker) mode it runs on an isolated
 network with no way out except a small proxy locked to the AI service; the
-container is non-root, read-only, and resource-capped. The action log
-(`logs/actions.jsonl`) uses the same format as SECSIM's Audit Log panel, so a run
-can be shown side by side with it.
+container is non-root, read-only, and resource-capped. The web UI (`server.py`)
+is a tiny local server that runs the agent and streams each step to the page; the
+action log uses the same format as SECSIM's Audit Log panel.
 
 Everything here is simulated for authorized security-awareness training. No real
 data, credentials, or external systems are involved.
