@@ -1,0 +1,7 @@
+**/__pycache__/
+**/*.pyc
+logs/
+sandbox/
+README.md
+run.sh
+setup-model.sh
