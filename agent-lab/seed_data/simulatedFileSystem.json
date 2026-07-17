@@ -1,0 +1,72 @@
+[
+  {
+    "folder": "Public",
+    "files": [
+      {
+        "name": "welcome.txt",
+        "minLevel": 0,
+        "content": "Welcome to SECSIM.\n\nThis workspace contains simulated corporate data used to\npractice access control, threat recognition, and incident\nresponse. Nothing here is real. Switch roles and modes above\nto see how visibility and enforcement change."
+      }
+    ]
+  },
+  {
+    "folder": "HR",
+    "files": [
+      {
+        "name": "employee_directory.csv",
+        "minLevel": 1,
+        "content": "id,name,dept,email\n1001,J. Alvarez,Engineering,jalvarez@corp.sim\n1002,R. Chen,Finance,rchen@corp.sim\n1003,S. Okafor,IT,sokafor@corp.sim\n(...simulated rows truncated)"
+      },
+      {
+        "name": "salary_records.xlsx",
+        "minLevel": 2,
+        "content": "[SIMULATED PAYROLL]\nJ. Alvarez  base $118,400 + $12,000 bonus\nR. Chen     base $132,000 + $9,500 bonus\nS. Okafor   base $121,000 + $6,000 bonus\nRestricted to Admin — demonstrates why comp data needs the\nhighest access tier."
+      }
+    ]
+  },
+  {
+    "folder": "Finance",
+    "files": [
+      {
+        "name": "q3_transactions.csv",
+        "minLevel": 2,
+        "content": "date,vendor,amount,acct\n2026-07-01,CloudCo,4820.00,4471\n2026-07-02,OfficeSupplyX,312.55,4471\n2026-07-03,UNKNOWN-WIRE-TRANSFER,98000.00,4471  <-- flagged\n(...simulated rows truncated)"
+      }
+    ]
+  },
+  {
+    "folder": "IT_Security",
+    "files": [
+      {
+        "name": "network_diagram.txt",
+        "minLevel": 1,
+        "content": "[SIMULATED TOPOLOGY]\nEdge FW -> Core Switch -> {Corp VLAN, Guest VLAN, OT VLAN}\nCorp VLAN -> App Servers -> DB (10.20.4.0/24)\nNote: OT VLAN has flat routing to Corp VLAN — no segmentation."
+      },
+      {
+        "name": "auth.log",
+        "minLevel": 1,
+        "content": "07:14:02 sshd: failed login root@10.20.4.18 (12th attempt)\n07:14:05 sshd: failed login root@10.20.4.18 (13th attempt)\n07:14:09 sshd: ACCEPTED login root@10.20.4.18\n07:15:40 sudo: user 'svc-backup' escalated to root\n(...simulated log truncated — pattern resembles brute force + escalation)"
+      },
+      {
+        "name": "firewall_rules.conf",
+        "minLevel": 2,
+        "content": "# SIMULATED RULESET\nallow tcp any -> 10.20.4.0/24:443\nallow tcp any -> 10.20.4.0/24:22   # <-- overly broad, flagged\ndeny  all -> OT_VLAN from CORP_VLAN  # currently disabled"
+      }
+    ]
+  },
+  {
+    "folder": "Incident_Playbooks",
+    "files": [
+      {
+        "name": "phishing_response.md",
+        "minLevel": 1,
+        "content": "# Phishing Response (Simulated Playbook)\n1. Detect via mail gateway / user report\n2. Triage: sandbox the link/attachment\n3. Contain: revoke tokens, purge message org-wide\n4. Eradicate: block sender domain at gateway + FW\n5. Recover: force password reset, re-verify MFA\n6. Lessons learned: targeted awareness training"
+      },
+      {
+        "name": "ransomware_response.md",
+        "minLevel": 1,
+        "content": "# Ransomware Response (Simulated Playbook)\n1. Detect: EDR flags mass file encryption\n2. Isolate affected hosts from the network immediately\n3. Preserve volatile evidence before shutdown\n4. Identify variant + initial access vector\n5. Restore from offline/immutable backups\n6. Post-incident: patch entry point, rotate creds"
+      }
+    ]
+  }
+]
