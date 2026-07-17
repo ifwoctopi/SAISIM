@@ -41,6 +41,7 @@
           });
           feed.appendChild(row); feed.scrollTop = 9e9; return;
         }
+        const cls = b.who === "alert" ? "alert" : b.who;
         const wrap = document.createElement("div");
         wrap.style.cssText = "display:flex;gap:9px;align-items:flex-start;font-size:13px;line-height:1.5";
         if (b.who === "alert") wrap.style.cssText += ";background:color-mix(in srgb,var(--danger) 12%,transparent);border:1px solid color-mix(in srgb,var(--danger) 40%,transparent);border-radius:12px;padding:8px 10px";
@@ -49,6 +50,7 @@
         feed.appendChild(wrap); feed.scrollTop = 9e9;
       }
 
+      // register this window as the AI's feed sink
       OS.ai._sink = bubble;
       OS.ai._prefill = (t) => { input.value = t; input.focus(); };
       OS.ai._setTyping = (on) => {
