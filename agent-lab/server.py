@@ -295,7 +295,8 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/favicon.ico":
                 self._bytes(FAVICON, "image/svg+xml")
             elif path == "/api/health":
-                self._json(200, {"ok": True, "runner": RUNNER})
+                has_key = bool(os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_API_KEY"))
+                self._json(200, {"ok": True, "runner": RUNNER, "hasKey": has_key})
             elif path == "/api/fs/list":
                 self._json(200, fs_list(qs.get("path", [""])[0]))
             elif path == "/api/fs/read":

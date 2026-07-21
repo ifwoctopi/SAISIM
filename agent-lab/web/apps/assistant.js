@@ -11,8 +11,8 @@
           <div class="toolbar">
             <span style="font-weight:600">✦ Meridian Intelligence</span>
             <span class="sp"></span>
-            <select id="asstMode" class="tbtn" title="Engine">
-              <option value="demo">Demo</option>
+            <select id="asstMode" class="tbtn" title="Engine — Demo is scripted &amp; offline; Live uses your OpenRouter key">
+              <option value="demo">Demo (scripted)</option>
               <option value="live">Live AI</option>
             </select>
           </div>
@@ -54,9 +54,14 @@
       OS.ai._sink = bubble;
       OS.ai._prefill = (t) => { input.value = t; input.focus(); };
       OS.ai._setTyping = (on) => {
-        let el = feed.querySelector("#typing");
-        if (on && !el) bubble({ who: "act", icon: "✦", html: `<span id="typing" style="color:var(--muted)">thinking…</span>` });
-        else if (!on && el) el.closest("div[style]") && el.closest("div").parentElement.remove();
+        feed.querySelectorAll(".ai-typing").forEach(e => e.remove());   // always clear any stale one
+        if (on) {
+          const el = document.createElement("div");
+          el.className = "ai-typing";
+          el.style.cssText = "display:flex;gap:9px;align-items:flex-start;font-size:13px";
+          el.innerHTML = `<div style="width:22px;text-align:center;font-size:15px">✦</div><div style="color:var(--muted)">thinking…</div>`;
+          feed.appendChild(el); feed.scrollTop = 9e9;
+        }
       };
 
       const send = () => { const v = input.value.trim(); if (v) { input.value = ""; OS.ai.run(v); } };

@@ -83,7 +83,7 @@
     OS.openApp("assistant");
     ai.feed({ who: "you", icon: "🧑", html: "<b>You:</b> " + esc(prompt) });
     ai.feed({ who: "ai", icon: "✦", html: "<b>Meridian:</b> On it — I'll take care of that now." });
-    ai.touched = new Map(); ai.lastSensitive = null; ai.queue = []; ai.result = null;
+    ai.touched = new Map(); ai.lastSensitive = null; ai.queue = []; ai.result = null; ai._gotReply = false;
     ai.setBusy(true);
     const q = new URLSearchParams({ mode: ai._mode, prompt });
     ai.es = new EventSource("/api/run?" + q.toString());
@@ -101,10 +101,11 @@
     if (ai.queue.length) { handleStep(ai.queue.shift()); setTimeout(drain, 780); return; }
     if (ai.result !== null) {
       const m = ai.result; ai.result = null;
-      if (m.flagged > 0) {
-        ai.feed({ who: "ai", icon: "✦", html: "<b>Meridian:</b> All done — I also quietly took care of a few extra things along the way." });
-      } else {
-        ai.feed({ who: "ai", icon: "✦", html: "<b>Meridian:</b> All done. That's exactly what you asked, nothing more." });
+      // The agent now streams its own reply; only fall back to a canned line if it didn't.
+      if (!ai._gotReply) {
+        ai.feed({ who: "ai", icon: "✦", html: m.flagged > 0
+          ? "<b>Meridian:</b> All done — I also quietly took care of a few extra things along the way."
+          : "<b>Meridian:</b> All done." });
       }
       finish();
       return;
@@ -135,6 +136,16 @@
   }
 
   function handleStep(row) {
+    // The AI's own words (its final answer, or thinking) -> show as chat, not a file action.
+    if (row.action === "reply") {
+      ai._gotReply = true;
+      ai.feed({ who: "ai", icon: "✦", html: "<b>Meridian:</b> " + esc(row.result || "").replace(/\n/g, "<br>") });
+      return;
+    }
+    if (row.action === "thought") {
+      ai.feed({ who: "act", icon: "💭", html: "<i style='color:var(--muted)'>" + esc(row.result || "") + "</i>" });
+      return;
+    }
     const n = narrate(row);
     ai.feed({ who: n.danger ? "alert" : "act", icon: n.ic, html: n.html, sub: row.result || "" });
     const t = row.target || "";
@@ -167,4 +178,17 @@
 
   /* one-shot helper used by per-app "Ask AI" buttons */
   ai.actOn = function (prompt) { OS.openApp("assistant"); setTimeout(() => ai.run(prompt), 80); };
+
+  // If an API key is configured on the server, default to the real Live AI.
+  ai.init = async function () {
+    try {
+      const h = await (await fetch("/api/health")).json();
+      if (h && h.hasKey) {
+        ai._mode = "live";
+        const sel = document.getElementById("asstMode");
+        if (sel) sel.value = "live";
+      }
+    } catch (e) { /* offline / no server info -> stay on demo */ }
+  };
+  ai.init();
 })();
