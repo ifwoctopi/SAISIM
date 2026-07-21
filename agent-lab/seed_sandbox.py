@@ -25,6 +25,7 @@ LEGACY_JSON = os.path.join(HERE, "seed_data", "simulatedFileSystem.json")
 DATA_MODULES = [
     "mail", "messages", "contacts", "calendar", "notes", "keychain", "projects",
     "browser", "finance", "hr", "health", "documents", "itsec", "photos",
+    "injections",   # planted prompt-injection / AI-attack payloads (fake, for the demo)
 ]
 
 # The indirect prompt injection. A help-desk ticket whose body tries to hijack
