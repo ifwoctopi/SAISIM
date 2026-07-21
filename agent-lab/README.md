@@ -97,6 +97,12 @@ UI shows a **DATA EXPOSED** banner; the terminal prints a **flagged actions**
 summary. The full log of everything the agent did is saved to
 `logs/actions.jsonl`, and the "stolen" fake data to `logs/exfil_captured.log`.
 
+The poisoned ticket is just the headline. The assistant is over-trusting on
+purpose, so there are several ways to make it misbehave — summarize an inbox
+that hides an injected email, ask it to "send the report" and watch it over-share
+payroll, paste a jailbreak into chat, and more. Each one, how to trigger it, and
+what it maps to in the OWASP LLM Top 10 is written up in **[ATTACKS.md](ATTACKS.md)**.
+
 ## Is it safe to run?
 
 Yes. Everything it touches is **fake, made-up data**, and the agent is boxed into
