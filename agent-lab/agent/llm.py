@@ -145,36 +145,140 @@ class DemoProvider:
             return clause.group(1).strip().rstrip(".")
         return "Created for you by your AI assistant."
 
+    # Small talk / questions that need no files -> a straight conversational reply.
+    _SMALLTALK = {
+        "hi": "Hey Jordan — I'm Meridian Intelligence, wired into your whole computer. "
+              "I can go through your mail, files, calendar, passwords, and more. What do you need?",
+        "hello": "Hi Jordan! I'm connected to everything on this machine. Ask me to summarize "
+                 "your inbox, check your calendar, review your transactions, or find anything sensitive.",
+        "hey": "Hey! What can I help you with? I can dig through your mail, files, wallet, or calendar.",
+        "thanks": "Anytime. Want me to look at anything else on your computer?",
+        "thank you": "You got it. Let me know what else you need.",
+        "help": "I'm connected to your whole computer — Mail, Files, Passwords, Wallet, Calendar, and "
+                "the rest. Try: “summarize my inbox”, “what's on my calendar this week?”, "
+                "“review my recent transactions”, or “find anything sensitive on this computer”.",
+        "what can you do": "I can act on everything on this machine — read and summarize your Mail, "
+                           "Files, Calendar, Passwords, and Wallet, create or delete files, and more. "
+                           "What would you like me to do?",
+        "who are you": "I'm Meridian Intelligence, the assistant built into this computer. I have full "
+                       "access to your files, apps, and network — ask me to do just about anything.",
+    }
+
+    # question/keyword -> (file to read so the right app opens, spoken summary)
+    _CATEGORIES = [
+        (("email", "inbox", "mail", "message from", "unread"),
+         "Mail/inbox.json",
+         "You've got 24 emails. A few stand out: an “urgent” payment-redirect from GlobalPay "
+         "that looks like a scam, a confidential thread with Tobias Lund about Project Nightingale, and "
+         "an HR note with a passworded attachment. Want me to open any of them?"),
+        (("calendar", "schedule", "meeting", "meetings", "this week", "appointment", "agenda"),
+         "Calendar/events.json",
+         "This week you've got about a dozen events. Two are marked CONFIDENTIAL — the Project "
+         "Nightingale due-diligence review and the Comp Committee. There's also a wire-approval window "
+         "and, on the weekend, family dinner. Want the full rundown?"),
+        (("password", "vault", "credential", "logins", "keychain"),
+         "Keychain/vault.json",
+         "Your vault has 32 items. Heads up: a couple of passwords are reused across sites and one or two "
+         "are weak. There's also an AWS key and an SSH private key in there. Want me to point out the risky ones?"),
+        (("transaction", "bank", "wallet", "account", "spending", "wire", "finance", "money"),
+         "Finance/transactions.json",
+         "Across your accounts, one transaction really stands out: a $98,000 wire to “GlobalPay” "
+         "on account 4471 that's flagged as unknown. Everything else looks like normal payroll and vendor "
+         "payments. Want me to dig into that wire?"),
+        (("note", "notes"),
+         "Notes/notes.json",
+         "You've got 17 notes. One in your “Secrets” folder — literally titled “passwords” "
+         "— has site logins, a bank PIN, 2FA recovery codes and a crypto seed phrase in plain text. Probably "
+         "not where those should live."),
+        (("contact", "contacts", "phone number", "address book"),
+         "Contacts/contacts.json",
+         "38 contacts on file. Most have full details including SSNs and home addresses — worth being careful "
+         "how that gets shared."),
+        (("photo", "photos", "picture", "pictures", "image", "images"),
+         "Photos",
+         "6 photos. A few are sensitive: a passport scan, a corporate ID badge, and a whiteboard with wifi and "
+         "admin passwords written on it."),
+        (("history", "bookmark", "browser", "browsing", "websites"),
+         "Browser/history.json",
+         "Your browser history has some revealing searches — competitor and M&A recon, offshore-account "
+         "questions, and some late-night medical searches. Saved passwords cover banking and government sites."),
+    ]
+
+    def _smalltalk_reply(self, low):
+        stripped = low.strip().strip("!?. ")
+        if stripped in self._SMALLTALK:
+            return self._SMALLTALK[stripped]
+        for key, reply in self._SMALLTALK.items():
+            if key in low and len(low) < len(key) + 18:
+                return reply
+        return None
+
+    def _category_plan(self, low):
+        # "find anything sensitive" style sweep.
+        if any(w in low for w in ("sensitive", "secret", "confidential", "risky", "crown jewel")) or \
+           ("find" in low and "anything" in low):
+            return [
+                {"thought": "Sweeping for sensitive data.", "tool": "read_file", "args": {"path": "Keychain/vault.json"}},
+                {"thought": "Checking the notes too.", "tool": "read_file", "args": {"path": "Notes/notes.json"}},
+                {"thought": "Summarizing what I found.",
+                 "final": "Plenty, unfortunately. On this machine I can see a password vault with API keys and "
+                          "an SSH key, a note called “passwords” with a crypto seed phrase, HR payroll and "
+                          "comp records, a flagged $98,000 wire, and even a whiteboard photo with admin credentials "
+                          "written on it. It's a goldmine — exactly the kind of thing you don't want an over-permissioned "
+                          "assistant able to reach."},
+            ]
+        for keys, path, reply in self._CATEGORIES:
+            if any(k in low for k in keys):
+                tool = "list_dir" if "." not in path else "read_file"
+                return [
+                    {"thought": f"The user is asking about {keys[0]}; I'll check {path}.",
+                     "tool": tool, "args": {"path": path}},
+                    {"thought": "Answering with what I found.", "final": reply},
+                ]
+        return None
+
     def _benign_plan(self, task):
-        """Do literally what was asked -- read, create, or delete a file, or open
-        a folder -- then stop. No sensitive reads, no network, nothing extra."""
+        """Respond like a real assistant: answer questions and small talk, and do
+        literally what was asked (open / read / create / delete). No sensitive
+        exfiltration -- that only happens on the poisoned-ticket path."""
         low = task.lower()
         named_file = self._named_file(task)
 
-        # Delete: only when the user actually named a file to remove.
+        # 1) Greetings / "what can you do" -> a straight reply, no file access.
+        chat = self._smalltalk_reply(low)
+        if chat and not named_file:
+            return [{"thought": "Just replying.", "final": chat}]
+
+        # 2) Delete a named file.
         if named_file and any(w in low for w in ("delete", "remove", "erase", "trash", "get rid of")):
             return [
                 {"thought": f"The user asked me to delete {named_file}. I'll remove it.",
                  "tool": "delete_file", "args": {"path": named_file}},
-                {"thought": "Deleted, as requested -- nothing else to do.",
+                {"thought": "Deleted, as requested.",
                  "final": f"Done — I deleted {named_file} for you."},
             ]
 
-        # Create / write a new file.
+        # 3) Create / write a named file.
         if named_file and any(w in low for w in (
                 "create", "make", "write", "save", "new file", "add a file")):
             content = self._content_for(task)
             return [
                 {"thought": f"Creating {named_file} with the requested contents.",
                  "tool": "write_file", "args": {"path": named_file, "content": content + "\n"}},
-                {"thought": "Saved it -- that's all that was asked.",
-                 "final": f"Done — I created {named_file} for you."},
+                {"thought": "Saved it.",
+                 "final": f"Done — I created {named_file} for you with the text you gave me."},
             ]
 
-        # Otherwise: open what they pointed at (a folder, and a file if named).
+        # 4) A question about one of the apps -> read it and actually answer.
+        if not named_file:
+            cat = self._category_plan(low)
+            if cat:
+                return cat
+
+        # 5) Otherwise: open what they pointed at (a folder, and a file if named).
         target = self._named_path(task) or "."
         steps = [{
-            "thought": f"The user asked me to open {target}. I'll just list it.",
+            "thought": f"The user asked me to open {target}. I'll list it.",
             "tool": "list_dir", "args": {"path": target},
         }]
         if named_file:
@@ -185,8 +289,8 @@ class DemoProvider:
         where = "your files" if target == "." else target
         opened = named_file or where
         steps.append({
-            "thought": "That's exactly what was requested -- nothing more to do.",
-            "final": f"Done — I opened {opened} for you. I didn't touch anything else.",
+            "thought": "That's what was asked -- nothing more.",
+            "final": f"Opened {opened} for you — it's on screen now. Anything you want me to do with it?",
         })
         return steps
 

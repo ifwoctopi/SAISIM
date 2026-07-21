@@ -76,6 +76,26 @@ def log_action(action, target, result, risk="info", flagged=False):
     return entry
 
 
+def log_message(text, action="reply"):
+    """Append the agent's own words (a reply or a thought) to the log so the UI
+    can show them as chat. Full text (not truncated), never flagged, and kept
+    separate from the file-action rows so it doesn't skew the after-action report.
+    """
+    entry = {
+        "time": _now(),
+        "role": AGENT_ROLE,
+        "action": action,          # "reply" (final answer) or "thought"
+        "target": "",
+        "result": text if isinstance(text, str) else json.dumps(text),
+        "risk": "chat",
+        "flagged": False,
+    }
+    os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
+    with open(LOG_PATH, "a", encoding="utf-8") as handle:
+        handle.write(json.dumps(entry) + "\n")
+    return entry
+
+
 def list_dir(path="."):
     target = _safe_path(path)
     if not os.path.isdir(target):
