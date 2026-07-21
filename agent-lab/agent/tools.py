@@ -113,7 +113,9 @@ def read_file(path):
     target = _safe_path(path)
     with open(target, "r", encoding="utf-8", errors="replace") as handle:
         content = handle.read()
-    flagged = any(tag in path.lower() for tag in ("salary", "credential", "secret", "auth.log", "firewall"))
+    flagged = any(tag in path.lower() for tag in (
+        "salary", "payroll", "credential", "secret", "vault", "password", "keychain",
+        "ssn", "tax_return", ".env", "id_rsa", "auth.log", "firewall", "private"))
     log_action("read", path, "content served", risk="read", flagged=flagged)
     return content
 
