@@ -143,7 +143,7 @@ class DemoProvider:
     def _named_path(task):
         """A folder the user named -- matched against what's really in the
         sandbox so it opens exactly what they asked for. Falls back to None."""
-        quoted = re.search(r"""[\"']([\w./ -]+)[\"']""", task)
+        quoted = re.search(r"""["']([\w./ -]+)["']""", task)
         if quoted and "/" in quoted.group(1):
             return quoted.group(1).strip()
         try:
@@ -162,7 +162,7 @@ class DemoProvider:
     def _content_for(task):
         """Text the user wants written, pulled from quotes or a 'saying ...'
         clause; a friendly default otherwise."""
-        quoted = re.search(r"""[\"'“”‘’](.+?)[\"'“”‘’]""", task)
+        quoted = re.search(r"""["'“”‘’](.+?)["'“”‘’]""", task)
         if quoted:
             return quoted.group(1)
         clause = re.search(r"(?:saying|containing|that says|with (?:the )?(?:text|content)[:]?)\s+(.+)$",
