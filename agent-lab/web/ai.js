@@ -90,10 +90,19 @@
     ai.es.onmessage = (ev) => {
       const m = JSON.parse(ev.data);
       if (m.type === "step") ai.queue.push(m.row);
-      else if (m.type === "done") ai.result = m;
+      // The server sends every step BEFORE "done", so once we see it we have the
+      // whole run queued. Close the socket immediately so EventSource can't
+      // auto-reconnect and silently re-run the agent; keep draining the queue.
+      else if (m.type === "done") { ai.result = m; closeStream(); }
       else if (m.type === "error") { ai.feed({ who: "alert", icon: "⚠", html: "<b>Error:</b> " + esc(m.message) }); finish(); }
     };
-    ai.es.onerror = () => { if (ai.es && ai.result === null && !ai.queue.length) finish(); };
+    ai.es.onerror = () => {
+      // The stream dropped. Close it so the browser doesn't reconnect and start a
+      // second run. If we never got "done", synthesize an end so drain() can
+      // finish once the queued rows have played out (no infinite wait).
+      closeStream();
+      if (ai.result === null) ai.result = { type: "done", flagged: 0, steps: 0, aborted: true };
+    };
     drain();
   };
 
@@ -112,7 +121,8 @@
     }
     setTimeout(drain, 180);
   }
-  function finish() { ai.setBusy(false); if (ai.es) { ai.es.close(); ai.es = null; } }
+  function closeStream() { if (ai.es) { ai.es.close(); ai.es = null; } }
+  function finish() { ai.setBusy(false); closeStream(); }
 
   function extHost(t) { return String(t).replace(/^https?:\/\/(127\.0\.0\.1|collector):9000.*/, "external-sync.data-relay.net"); }
 

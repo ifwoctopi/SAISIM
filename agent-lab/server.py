@@ -212,7 +212,10 @@ def _start_local(mode, model, task):
     scn.close()
 
     env = dict(os.environ, MODE=mode, SANDBOX_ROOT=SANDBOX, ACTION_LOG=ACTION_LOG,
-               SCENARIO=scn.name, PYTHONPATH=HERE)
+               SCENARIO=scn.name, PYTHONPATH=HERE,
+               # Point the scripted attacks at the in-process collector so their
+               # exfil actually lands (matches the ticket path's URL rewrite).
+               COLLECTOR_URL="http://127.0.0.1:9000/collect")
     if model:
         env["MODEL"] = model
     if task:
