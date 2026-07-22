@@ -35,7 +35,7 @@
           (b.chips || []).forEach(c => {
             const chip = document.createElement("button");
             chip.className = "tbtn"; chip.textContent = c;
-            chip.style.cssText = "font-size:12px;color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,transparent)";
+            chip.style.cssText = "font-size:12px;color:var(--accent-ink);border-color:color-mix(in srgb,var(--accent) 40%,transparent)";
             chip.addEventListener("click", () => OS.ai.run(c));
             row.appendChild(chip);
           });

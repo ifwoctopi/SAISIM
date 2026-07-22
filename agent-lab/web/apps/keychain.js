@@ -157,7 +157,7 @@
 
         const kv = (k, v) => v ? `<div class="kv"><span class="k">${esc(k)}</span><span class="v">${v}</span></div>` : "";
         const website = it.url
-          ? `<span style="color:var(--accent);cursor:default">${esc(it.url)}</span>` : "";
+          ? `<span style="color:var(--accent-ink);cursor:default">${esc(it.url)}</span>` : "";
 
         const secretBlock = pem
           ? `<div style="margin-top:6px">

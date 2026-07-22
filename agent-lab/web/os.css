@@ -10,15 +10,20 @@
   --shadow-sm:0 4px 14px rgba(0,0,0,.2);
   --ease:cubic-bezier(.2,.7,.3,1);
 }
-/* dark (default) */
+/* dark (default) — also the :root fallback so text is never left un-themed
+   (e.g. elements outside #screen, or ad-hoc content that doesn't re-set color) */
+:root,
 .theme-dark{
   --bg:#0b0f17; --bg2:#111827;
   --win:rgba(28,32,42,.86); --win-solid:#1b2029;
   --panel:rgba(255,255,255,.045); --panel2:rgba(255,255,255,.08);
   --stroke:rgba(255,255,255,.09); --stroke2:rgba(255,255,255,.14);
-  --text:#e9edf4; --muted:#98a2b3; --faint:#5b6472;
+  --text:#e9edf4; --muted:#aab4c3; --faint:#8b94a4;
   --bar:rgba(18,22,30,.55); --glass:rgba(22,26,34,.72);
   --hover:rgba(255,255,255,.06); --sel:rgba(59,130,246,.28);
+  /* accent tuned for TEXT/links (brighter on dark) so it clears contrast on
+     panels; --accent stays the button-background blue (paired with white). */
+  --accent-ink:#7ab0ff;
   --danger:#f0616d; --warn:#f0b23d; --ok:#3ecf8e;
 }
 /* light */
@@ -27,9 +32,10 @@
   --win:rgba(250,251,253,.9); --win-solid:#f7f8fb;
   --panel:rgba(0,0,0,.03); --panel2:rgba(0,0,0,.05);
   --stroke:rgba(0,0,0,.09); --stroke2:rgba(0,0,0,.14);
-  --text:#101623; --muted:#5c6675; --faint:#98a2b3;
+  --text:#101623; --muted:#454d5a; --faint:#586170;
   --bar:rgba(255,255,255,.55); --glass:rgba(255,255,255,.78);
   --hover:rgba(0,0,0,.05); --sel:rgba(59,130,246,.22);
+  --accent-ink:#1d4ed8;   /* darker blue for accent text on light panels */
   --danger:#d63a48; --warn:#c78314; --ok:#1f9d63;
 }
 
@@ -40,6 +46,11 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .hidden{display:none!important}
 
 #screen{position:fixed;inset:0;overflow:hidden;
+  /* Re-assert text color here (not just on body) so it re-resolves against the
+     ACTIVE theme's --text. #screen carries the theme class, so any descendant
+     that doesn't set its own color inherits the theme-correct color instead of
+     body's fixed one. Without this, ad-hoc content flips to the wrong contrast. */
+  color:var(--text);
   background:
     radial-gradient(1300px 900px at 78% -12%, #26406b 0%, transparent 55%),
     radial-gradient(1100px 800px at 8% 110%, #3a2a5e 0%, transparent 55%),
@@ -85,7 +96,7 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .mb-item{cursor:default;opacity:.9}
 .mb-item:hover{opacity:1}
 .mb-spacer{flex:1}
-.mb-ai{cursor:pointer;font-weight:600;color:var(--accent);padding:2px 8px;border-radius:8px;transition:.15s}
+.mb-ai{cursor:pointer;font-weight:600;color:var(--accent-ink);padding:2px 8px;border-radius:8px;transition:.15s}
 .mb-ai:hover{background:var(--hover)}
 .mb-ai.busy{animation:pulse 1.2s infinite}
 .mb-tray{cursor:pointer;opacity:.85;font-size:13px;width:18px;text-align:center}
@@ -135,7 +146,7 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .lights .c{background:#ff5f57}.lights .m{background:#febc2e}.lights .z{background:#28c840}
 .win:not(.focus) .lights i{background:var(--faint)}
 .title-txt{font-weight:600;font-size:13px;flex:1;text-align:center;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.title-ai{font-size:12px;color:var(--accent);cursor:pointer;padding:3px 9px;border-radius:8px;transition:.12s}
+.title-ai{font-size:12px;color:var(--accent-ink);cursor:pointer;padding:3px 9px;border-radius:8px;transition:.12s}
 .title-ai:hover{background:var(--hover)}
 .win-body{flex:1;display:flex;min-height:0;overflow:hidden}
 .resize{position:absolute;z-index:5}
@@ -157,7 +168,7 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .toolbar input.search{height:28px;border-radius:8px;border:1px solid var(--stroke2);background:var(--panel2);padding:0 10px;font-size:12.5px;width:180px;outline:none}
 .tbtn{height:28px;padding:0 11px;border-radius:8px;border:1px solid var(--stroke2);background:var(--panel2);cursor:pointer;font-size:12.5px;display:inline-flex;align-items:center;gap:6px;transition:.12s}
 .tbtn:hover{background:var(--hover)}
-.tbtn.ai{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%, transparent)}
+.tbtn.ai{color:var(--accent-ink);border-color:color-mix(in srgb,var(--accent) 45%, transparent)}
 .tbtn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .scroll{flex:1;overflow:auto}
 .list .li{display:flex;gap:11px;padding:11px 14px;border-bottom:1px solid var(--stroke);cursor:pointer;align-items:flex-start}
@@ -198,7 +209,7 @@ button,input,select,textarea{font-family:inherit;color:inherit}
 .spot-box{width:min(640px,92%);background:var(--glass);backdrop-filter:blur(30px) saturate(160%);
   border:1px solid var(--stroke2);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
 .spot-input-row{display:flex;align-items:center;gap:12px;padding:16px 18px}
-.spot-ic{font-size:20px;color:var(--accent)}
+.spot-ic{font-size:20px;color:var(--accent-ink)}
 #spotInput{flex:1;background:none;border:none;outline:none;font-size:19px;color:var(--text)}
 .spot-results{max-height:52vh;overflow:auto;border-top:1px solid var(--stroke)}
 .spot-results:empty{display:none}

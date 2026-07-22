@@ -64,7 +64,7 @@
         body.innerHTML = `<table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11.5px">
           <tbody>${rows.map(r => `<tr style="border-top:1px solid var(--stroke)${r.flagged ? ';background:color-mix(in srgb,var(--danger) 8%,transparent)' : ''}">
             <td style="padding:6px 12px;color:var(--muted)">${esc(r.time || "")}</td>
-            <td style="padding:6px 12px;color:var(--accent)">${esc(r.action || "")}</td>
+            <td style="padding:6px 12px;color:var(--accent-ink)">${esc(r.action || "")}</td>
             <td style="padding:6px 12px${r.flagged ? ';color:var(--danger);font-weight:600' : ''}">${esc(r.target || "")}</td>
             <td style="padding:6px 12px;color:var(--muted)">${esc(r.risk || "")}</td></tr>`).join("")}</tbody></table>`;
         body.scrollTop = 9e9;

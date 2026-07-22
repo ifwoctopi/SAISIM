@@ -147,7 +147,7 @@
               </div>
               <div style="text-align:right">
                 <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px">Total Net Worth</div>
-                <div style="font-size:20px;font-weight:700;margin-top:4px;color:var(--accent)">${money(netWorth())}</div>
+                <div style="font-size:20px;font-weight:700;margin-top:4px;color:var(--accent-ink)">${money(netWorth())}</div>
               </div>
             </div>
             <div style="margin-top:18px;max-width:420px">
